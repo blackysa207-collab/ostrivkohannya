@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Острів без правил</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Montserrat', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #0f172a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-container {
+            width: 100vw;
+            max-width: 450px;
+            height: 100vh;
+            max-height: 840px;
+            position: relative;
+            background-color: #f8fafc;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: background-color 0.5s ease;
+        }
+
+        @media (min-width: 451px) {
+            .game-container { border-radius: 24px; }
+        }
+
+        .game-container.night-theme {
+            background-color: #090d16;
+        }
+
+        /* Усі картинки прописані класичними тегами в HTML */
+        .bg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            display: none;
+        }
+
+        .bg-layer.active {
+            display: block;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            z-index: 10;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .love-meter-container {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 65%;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(8px);
+            border: 2px solid #fda4af;
+            border-radius: 20px;
+            padding: 6px 12px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+            z-index: 80;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .love-meter-container.active { display: flex; }
+
+        .love-title {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #e11d48;
+            text-transform: uppercase;
+        }
+
+        .love-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #ffe4e6;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .love-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #f43f5e, #e11d48);
+            border-radius: 10px;
+            transition: width 0.6s ease-in-out;
+        }
+
+        .sound-control {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 100;
+        }
+
+        .sound-btn {
+            background: #ffffff;
+            border: 2px solid #f43f5e;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sound-popover {
+            display: none;
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background: #ffffff;
+            padding: 10px 14px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            border: 1px solid #fda4af;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .sound-popover.open { display: flex; }
+
+        .sound-popover label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #475569;
+        }
+
+        .sound-popover input { accent-color: #f43f5e; cursor: pointer; }
+
+        #mainMenuScreen {
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 70px;
+            z-index: 50;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #e11d48, #f43f5e);
+            color: white;
+            border: none;
+            padding: 16px 50px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            border-radius: 35px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(225, 29, 72, 0.4);
+            transition: transform 0.15s ease;
+            z-index: 100;
+        }
+
+        .btn-start:active { transform: scale(0.95); }
+
+        #gameplayScreen {
+            justify-content: flex-end;
+            z-index: 50;
+        }
+
+        .dialogue-wrapper {
+            padding: 10px 12px;
+            width: 100%;
+            z-index: 50;
+            cursor: pointer;
+        }
+
+        .dialogue-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 2px solid #fda4af;
+            border-radius: 16px;
+            padding: 12px 14px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .game-container.night-theme .dialogue-card {
+            background: rgba(15, 23, 42, 0.9);
+            border-color: #f43f5e;
+        }
+
+        .speaker-title {
+            color: #e11d48;
+            font-size: 0.85rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .dialogue-content {
+            color: #1e293b;
+            font-size: 0.83rem;
+            line-height: 1.38;
+            font-weight: 600;
+            min-height: 48px;
+            transition: color 0.3s;
+        }
+
+        .game-container.night-theme .dialogue-content { color: #f1f5f9; }
+
+        .tap-hint {
+            text-align: right;
+            font-size: 0.6rem;
+            color: #94a3b8;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .choice-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(6px);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            padding: 20px;
+            z-index: 999;
+        }
+
+        .game-container.night-theme .choice-overlay {
+            background: rgba(9, 13, 22, 0.82);
+        }
+
+        .choice-overlay.active { display: flex; }
+
+        .choice-btn {
+            width: 100%;
+            background: #ffffff;
+            color: #e11d48;
+            border: 2.5px solid #f43f5e;
+            padding: 14px 16px;
+            border-radius: 16px;
+            font-size: 0.88rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+            transition: all 0.15s ease;
+            text-align: center;
+        }
+
+        .choice-btn:active {
+            background: #fff1f2;
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container" id="gameContainer">
+
+    <!-- Пряме прописування кожної картинки через тег img в HTML, як ти й просила -->
+    <img id="img_main" class="bg-layer active" src="main.png" alt="Головна">
+    <img id="img_f1_1" class="bg-layer" src="f1_1.png" alt="Сцена">
+    <img id="img_f1_2_arin" class="bg-layer" src="f1_2_arin.png" alt="Арін">
+    <img id="img_f1_2_scifi" class="bg-layer" src="f1_2_scifi.png" alt="Бар">
+    <img id="img_f1_2_teo" class="bg-layer" src="f1_2_teo.png" alt="Сайфай">
+    <img id="img_f2_1" class="bg-layer" src="f2_1.png" alt="Човен">
+    <img id="img_f2_2" class="bg-layer" src="f2_2.png" alt="Вечірка">
+    <img id="img_f2_3" class="bg-layer" src="f2_3.png" alt="Джунглі">
+    <img id="img_f3_1_arin" class="bg-layer" src="f3_1_arin.png" alt="Шторм Арін">
+    <img id="img_f3_1_teo" class="bg-layer" src="f3_1_teo.png" alt="Шторм Тео">
+    <img id="img_f3_2_arin" class="bg-layer" src="f3_2_arin.png" alt="Бунгало Арін">
+    <img id="img_f3_2_scifi" class="bg-layer" src="f3_2_scifi.png" alt="Бунгало Тео">
+    <img id="img_f3_2_teo" class="bg-layer" src="f3_2_teo.png" alt="Водоспад">
+    <img id="img_f3_3_arin" class="bg-layer" src="f3_3_arin.png" alt="Фінал Арін">
+    <img id="img_f3_3_scifi" class="bg-layer" src="f3_3_scifi.png" alt="Фінал Тео">
+    <img id="img_f3_3_teo" class="bg-layer" src="f3_3_teo.png" alt="Фінал Сайфай">
+
+    <div class="love-meter-container" id="loveMeter">
+        <div class="love-title" id="loveTitle">Симпатія ❤️</div>
+        <div class="love-bar-bg">
+            <div class="love-bar-fill" id="loveBar"></div>
+        </div>
+    </div>
+
+    <div class="sound-control">
+        <button class="sound-btn" onclick="toggleSoundPopover()">🔊</button>
+        <div class="sound-popover" id="soundPopover">
+            <label>Гучність</label>
+            <input type="range" min="0" max="1" step="0.05" value="0.5" oninput="setVolume(this.value)">
+        </div>
+    </div>
+
+    <div class="screen active" id="mainMenuScreen">
+        <button class="btn-start" onclick="startGame()">ПОЧАТИ</button>
+    </div>
+
+    <div class="screen" id="gameplayScreen">
+        <div class="choice-overlay" id="choiceOverlay"></div>
+
+        <div class="dialogue-wrapper" onclick="handleTap()">
+            <div class="dialogue-card">
+                <div class="speaker-title" id="speaker">Лея</div>
+                <div class="dialogue-content" id="text">...</div>
+                <div class="tap-hint">Торкніться екрана ▶</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let audioCtx = null;
+    let volume = 0.5;
+    let continuousMusicInterval = null;
+
+    function startContinuousThaiMusic() {
+        if (volume <= 0) return;
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        if (continuousMusicInterval) return;
+
+        const thaiScale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
+        let step = 0;
+
+        continuousMusicInterval = setInterval(() => {
+            if (volume <= 0) return;
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            let now = audioCtx.currentTime;
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(thaiScale[step % thaiScale.length], now);
+            
+            gain.gain.setValueAtTime(volume * 0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+            osc.start(now);
+            osc.stop(now + 1.3);
+            step++;
+        }, 800);
+    }
+
+    function playClickSound() {
+        if (volume <= 0) return;
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        let t = audioCtx.currentTime;
+        osc.frequency.setValueAtTime(400, t);
+        osc.frequency.exponentialRampToValueAtTime(200, t + 0.03);
+        gain.gain.setValueAtTime(volume * 0.05, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+        osc.start(t);
+        osc.stop(t + 0.03);
+    }
+
+    function toggleSoundPopover() {
+        document.getElementById('soundPopover').classList.toggle('open');
+    }
+
+    function setVolume(val) {
+        volume = parseFloat(val);
+        const btn = document.querySelector('.sound-btn');
+        btn.innerText = volume === 0 ? '🔇' : (volume < 0.4 ? '🔉' : '🔊');
+    }
+
+    const prologueStory = [
+        { imgKey: "img_f1_1", speaker: "Описи", text: "Спекотне вологе повітря огортає з першої секунди, як тільки Лея ступає з палуби великого порому на дерев'яний причал Пхукету.", night: false },
+        { imgKey: "img_f1_1", speaker: "Лея (в думках)", text: "Нарешті! Два тижні сонця, фрешів і жодного дзвінка від боса. Я на місці!", night: false },
+        { imgKey: "img_f1_1", speaker: "Описи", text: "Проте ідилія триває недовго. Біля стрічки видачі багажу панує хаос. Лея марно видивляється свою яскраву жовту валізу.", night: false },
+        { imgKey: "img_f1_1", speaker: "Місцевий працівник", text: "Мадам! Жовта валіза? Ох, вибачте... Вона поїхала далі на материк. Повернуть завтра, можливо.", night: false },
+        { imgKey: "img_f1_1", speaker: "Лея", text: "Що значить 'можливо'?! У мене там весь одяг!", night: false },
+        { imgKey: "img_f1_1", speaker: "Описи", text: "Дівчина робить глибокий вдих, поправляючи пасмо білявого волосся. Сумувати немає часу — попереду цілий острів. Потрібно вирішити, куди вирушити першочергово.", night: false },
+        { imgKey: "img_f1_1", speaker: "Вибір маршруту", text: "Куди спрямувати свої кроки?", isBranchChoice: true, night: false }
+    ];
+
+    let currentStep = 0;
+    let activeStory = [...prologueStory];
+    let selectedFav = "";
+    let lovePoints = 0;
+
+    function startGame() {
+        startContinuousThaiMusic();
+        currentStep = 0;
+        lovePoints = 0;
+        activeStory = [...prologueStory];
+        document.getElementById('gameContainer').classList.remove('night-theme');
+        document.getElementById('mainMenuScreen').classList.remove('active');
+        document.getElementById('gameplayScreen').classList.add('active');
+        document.getElementById('loveMeter').classList.remove('active');
+        renderStep();
+    }
+
+    function showImage(imgKey) {
+        document.querySelectorAll('.bg-layer').forEach(img => img.classList.remove('active'));
+        const target = document.getElementById(imgKey);
+        if (target) target.classList.add('active');
+    }
+
+    function renderStep() {
+        const item = activeStory[currentStep];
+        showImage(item.imgKey || "img_main");
+
+        const container = document.getElementById('gameContainer');
+        if (item.night) {
+            container.classList.add('night-theme');
+        } else {
+            container.classList.remove('night-theme');
+        }
+
+        document.getElementById('speaker').innerText = item.speaker;
+        document.getElementById('text').innerText = item.text;
+
+        const choiceBox = document.getElementById('choiceOverlay');
+        choiceBox.innerHTML = "";
+
+        if (item.isBranchChoice) {
+            choiceBox.classList.add('active');
+            choiceBox.innerHTML = `
+                <button class="choice-btn" onclick="selectBranch('arin')">Піти до причалу та приватних човнів (Арін)</button>
+                <button class="choice-btn" onclick="selectBranch('teo')">Зайти до пляжного бару "Sunset" (Тео)</button>
+                <button class="choice-btn" onclick="selectBranch('scifi')">Прогулятися до рингу в джунглях (Сайфай)</button>
+            `;
+        } else if (item.isInteractionChoice) {
+            choiceBox.classList.add('active');
+            item.choices.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.innerText = c.text;
+                btn.onclick = () => handleChoiceResult(c.addPoint, c.branchKey);
+                choiceBox.appendChild(btn);
+            });
+        } else {
+            choiceBox.classList.remove('active');
+        }
+    }
+
+    function handleTap() {
+        const item = activeStory[currentStep];
+        if (item.isBranchChoice || item.isInteractionChoice) return;
+
+        playClickSound();
+        currentStep++;
+
+        if (currentStep < activeStory.length) {
+            renderStep();
+        } else {
+            currentStep = 0;
+            activeStory = [...prologueStory];
+            showImage("img_main");
+            document.getElementById('gameContainer').classList.remove('night-theme');
+            document.getElementById('loveMeter').classList.remove('active');
+            document.getElementById('gameplayScreen').classList.remove('active');
+            document.getElementById('mainMenuScreen').classList.add('active');
+        }
+    }
+
+    function updateLoveBar() {
+        const loveMeter = document.getElementById('loveMeter');
+        const loveTitle = document.getElementById('loveTitle');
+        const loveBar = document.getElementById('loveBar');
+        
+        loveTitle.innerText = "Симпатія ❤️";
+        loveMeter.classList.add('active');
+        
+        let pct = lovePoints === 0 ? 30 : (lovePoints === 1 ? 65 : 100);
+        loveBar.style.width = pct + '%';
+    }
+
+    function selectBranch(fav) {
+        playClickSound();
+        selectedFav = fav;
+        lovePoints = 0;
+        updateLoveBar();
+
+        let branchStory = [];
+
+        if (fav === 'arin') {
+            branchStory = [
+                { imgKey: "img_f1_2_arin", speaker: "Описи", text: "Лея крокує вздовж пляжу. Біля крайньої лодки сидить хлопець із розпатланим темно-русявим волоссям та ретельно роздивляється карту хвиль.", night: false },
+                { imgKey: "img_f1_2_arin", speaker: "Арін", text: "Потрібна допомога, міледі? Чи ти просто милуєшся моїм 'Морським дияволом'?", night: false },
+                { imgKey: "img_f1_2_arin", speaker: "Лея", text: "'Морський диявол'? Ця дерев'яна шкаралупа витримає дорогу до готелю? Мій багаж втрачено, і я не в настрої для пригод.", night: false },
+                { imgKey: "img_f1_2_arin", speaker: "Арін (посміхається)", text: "Ця 'шкаралупа' проходить там, де великі пороми сядуть на мілину. Я Арін. І можу довезти тебе з вітерцем прямо до пірсу!", night: false },
+                { imgKey: "img_f1_2_arin", speaker: "Лея", text: "А якщо буде шторм? Небо он як затягується.", night: false },
+                { imgKey: "img_f1_2_arin", speaker: "Арін", text: "Тоді це буде найкраща пригода у твоєму житті. Ну що, ризикнеш?", night: false },
+                { 
+                    imgKey: "img_f1_2_arin", speaker: "Вибір", text: "Як відповісти хлопцеві?", 
+                    isInteractionChoice: true, night: false,
+                    choices: [
+                        { text: "Звучить як виклик. Я в ділі, капітане!", addPoint: true, branchKey: "arin_pos" },
+                        { text: "Ні, дякую. Краще зачекаю на пором або таксі.", addPoint: false, branchKey: "arin_neg" }
+                    ]
+                }
+            ];
+        } else if (fav === 'teo') {
+            branchStory = [
+                { imgKey: "img_f1_2_scifi", speaker: "Описи", text: "Лея крокує узбережжям під баси з бару 'Sunset'. За баром стоїть високий хлопець у сонцезахисних окулярах увечері з розстебнутою яскравою сорочкою.", night: false },
+                { imgKey: "img_f1_2_scifi", speaker: "Тео", text: "Ого, бачу перед собою дівчину, якій терміново потрібен порятунок від спеки і поганого настрою. Я Тео, готую найкращий 'Тропічний вибух'!", night: false },
+                { imgKey: "img_f1_2_scifi", speaker: "Лея", text: "Зручно готувати коктейлі в сутінках у темних окулярах?", night: false },
+                { imgKey: "img_f1_2_scifi", speaker: "Тео (посміхається)", text: "Це не просто окуляри, це фільтр від сірої буденності. Тримай за рахунок закладу. Спробуєш відчути смак справжнього острова?", night: false },
+                { 
+                    imgKey: "img_f1_2_scifi", speaker: "Вибір", text: "Як відповісти бармену?", 
+                    isInteractionChoice: true, night: false,
+                    choices: [
+                        { text: "Взяти коктейль і зануритися в атмосферу танцю.", addPoint: true, branchKey: "teo_pos" },
+                        { text: "Зробити іронічне зауваження та поставити його на місце.", addPoint: false, branchKey: "teo_neg" }
+                    ]
+                }
+            ];
+        } else if (fav === 'scifi') {
+            branchStory = [
+                { imgKey: "img_f1_2_teo", speaker: "Описи", text: "Лея виходить до спортивного майданчика біля джунглів. Атлетичний хлопець проводить тренування з Муай Тай на рингу.", night: false },
+                { imgKey: "img_f1_2_teo", speaker: "Сайфай", text: "Бачу багато невитраченої енергії в очах. Я Сайфай, інструктор з Муай Тай. Хочеш випустити пар після важкої дороги?", night: false },
+                { imgKey: "img_f1_2_teo", speaker: "Лея", text: "Думаєш, я витримаю твоє тренування?", night: false },
+                { imgKey: "img_f1_2_teo", speaker: "Сайфай", text: "Справжня сила всередині. Я навчу тебе тримати удар від будь-яких життєвих штормів.", night: false },
+                { 
+                    imgKey: "img_f1_2_teo", speaker: "Вибір", text: "Що відповісти тренеру?", 
+                    isInteractionChoice: true, night: false,
+                    choices: [
+                        { text: "Одягнути рукавички й довіритися його уроку!", addPoint: true, branchKey: "scifi_pos" },
+                        { text: "Подякувати за пропозицію й повернутися до спокою.", addPoint: false, branchKey: "scifi_neg" }
+                    ]
+                }
+            ];
+        }
+
+        activeStory = activeStory.concat(branchStory);
+        document.getElementById('choiceOverlay').classList.remove('active');
+        currentStep++;
+        renderStep();
+    }
+
+    function handleChoiceResult(addPoint, branchKey) {
+        playClickSound();
+        if (addPoint) lovePoints += 1;
+        updateLoveBar();
+
+        let nextSeq = [];
+
+        if (branchKey === 'arin_pos') {
+            nextSeq = [
+                { imgKey: "img_f2_1", speaker: "Описи", text: "Лея застрибує в човен. Сонячні промені відбиваються від сорочки, а солоні бризки омивають ноги. Арін стрімко розрізає бірюзову воду.", night: false },
+                { imgKey: "img_f2_1", speaker: "Арін", text: "Бачиш ті скелі? За ними захована лагуна, про яку знають тільки місцеві. Хочеш зазирнути туди перед готелем?", night: false },
+                { imgKey: "img_f2_1", speaker: "Лея", text: "А ти завжди такий наполегливий із незнайомками?", night: false },
+                { imgKey: "img_f2_1", speaker: "Арін (сміється)", text: "Тільки з тими, у чиїх очах бачу бажання втекти від буденності.", night: false },
+                { imgKey: "img_f3_1_arin", speaker: "Описи", text: "Небо темнішає за лічені хвилини. Тропічна злива накриває море. Арін швидко спрямовує човен до затишного бунгало на палях.", night: true },
+                { imgKey: "img_f3_2_arin", speaker: "Арін", text: "Ух! Встигли. Ти не змерзла? Знаєш... на острові під час зливи всі правила скасовуються.", night: true },
+                { 
+                    imgKey: "img_f3_2_arin", speaker: "Вибір", text: "Вирішальний момент у бунгало:", 
+                    isInteractionChoice: true, night: true,
+                    choices: [
+                        { text: "Зробити крок назустріч і покласти руку йому на груди.", addPoint: true, branchKey: "arin_ending_good" },
+                        { text: "Іронічно посміхнутися і забрати рушник з його рук.", addPoint: false, branchKey: "arin_ending_neutral" }
+                    ]
+                }
+            ];
+        } else if (branchKey === 'arin_neg') {
+            nextSeq = [
+                { imgKey: "img_f2_1", speaker: "Лея", text: "Лея відмовляється ризикувати на дерев'яній шкаралупі й обирає спокійне очікування на причалі.", night: false },
+                { imgKey: "img_main", speaker: "Фінал", text: "Фінал: 'Самостійне літо'! Лея отримує валізу наступного дня й проводить комфортну відпустку біля басейну.", night: false }
+            ];
+        } else if (branchKey === 'teo_pos') {
+            nextSeq = [
+                { imgKey: "img_f2_2", speaker: "Описи", text: "Ритми хаусу накривають пляж. Тео наливає яскравий коктейль і запрошує Лею поближче до стійки.", night: false },
+                { imgKey: "img_f2_2", speaker: "Тео", text: "Ти надто гарна, щоб сумувати за валізою. Завтра ми влаштуємо найкращу вечірку на всьому узбережжі!", night: false },
+                { imgKey: "img_f3_1_teo", speaker: "Описи", text: "Раптовий шторм розганяє гостей. Тео затягує Лею в сухе VIP-бунгало за діджейською стійкою.", night: true },
+                { imgKey: "img_f3_2_scifi", speaker: "Тео", text: "Музика не зупиняється через зливу! Острів любить сміливих, Леє. Подаруй мені цей танець під громом.", night: true },
+                { 
+                    imgKey: "img_f3_2_scifi", speaker: "Вибір", text: "Вирішальний момент під баси:", 
+                    isInteractionChoice: true, night: true,
+                    choices: [
+                        { text: "Зробити крок назустріч і відповісти на поцілунок.", addPoint: true, branchKey: "teo_ending_good" },
+                        { text: "Зробити смішну гримасу й зберегти дистанцію.", addPoint: false, branchKey: "teo_ending_neutral" }
+                    ]
+                }
+            ];
+        } else if (branchKey === 'teo_neg') {
+            nextSeq = [
+                { imgKey: "img_f2_2", speaker: "Лея", text: "Лея залишає бармена з його окулярами й повертається до комфортного номеру готелю.", night: false },
+                { imgKey: "img_main", speaker: "Фінал", text: "Фінал: 'Просто гостя'! Лея обирає тихий релакс без нічних вечірок і гучних тусовок.", night: false }
+            ];
+        } else if (branchKey === 'scifi_pos') {
+            nextSeq = [
+                { imgKey: "img_f2_3", speaker: "Описи", text: "Сайфай показує перші стійки. Лея відчуває приплив адреналіну та впевненості у своїх силах.", night: false },
+                { imgKey: "img_f2_3", speaker: "Сайфай", text: "Ти маєш прихований потенціал. З таким ударом можна захистити себе від будь-яких життєвих штормів.", night: false },
+                { imgKey: "img_f3_1_teo", speaker: "Описи", text: "Після тренування шторм застає їх біля секретного водоспаду в густих джунглях.", night: true },
+                { imgKey: "img_f3_2_teo", speaker: "Сайфай", text: "Під цією скелею ми в безпеці. Відчуй ритм дощу й абсолютний спокій острова...", night: true },
+                { 
+                    imgKey: "img_f3_2_teo", speaker: "Вибір", text: "Вирішальний момент біля водоспаду:", 
+                    isInteractionChoice: true, night: true,
+                    choices: [
+                        { text: "Довіритися його силі та обійняти у відповідь.", addPoint: true, branchKey: "scifi_ending_good" },
+                        { text: "Подякувати за урок та зберегти дружній тон.", addPoint: false, branchKey: "scifi_ending_neutral" }
+                    ]
+                }
+            ];
+        } else if (branchKey === 'scifi_neg') {
+            nextSeq = [
+                { imgKey: "img_f2_3", speaker: "Лея", text: "Лея вирішує не перевантажуватися тренуваннями після довгої та виснажливої дороги.", night: false },
+                { imgKey: "img_main", speaker: "Фінал", text: "Фінал: 'Урок засвоєно'! Лея отримує заряд енергії та спокійно відпочиває у своїй кімнаті.", night: false }
+            ];
+        } else if (branchKey === 'arin_ending_good') {
+            if (lovePoints >= 2) {
+                nextSeq = [
+                    { imgKey: "img_f3_3_arin", speaker: "Фінал 1", text: "Фінал 1: 'Морський шторм'! Поцілунок під шум зливи стає початком великого кохання. Лея обмінює квиток і залишається жити на човні з Аріном!", night: true }
+                ];
+            } else {
+                nextSeq = [
+                    { imgKey: "img_f3_3_arin", speaker: "Фінал 2", text: "Фінал 2: 'Незабутній літній спогад'! Яскравий курортний роман, фотографія на столі та найтепліший спогад про це літо.", night: true }
+                ];
+            }
+        } else if (branchKey === 'arin_ending_neutral') {
+            nextSeq = [
+                { imgKey: "img_f3_3_arin", speaker: "Фінал 3", text: "Фінал 3: 'Самостійне літо'! Лея дякує за допомогу під час зливи й насолоджується затишною відпусткою.", night: false }
+            ];
+        } else if (branchKey === 'teo_ending_good') {
+            if (lovePoints >= 2) {
+                nextSeq = [
+                    { imgKey: "img_f3_3_scifi", speaker: "Фінал 1", text: "Фінал 1: 'Діджей-дует & Нескінченне літо'! Лея залишається на острові як со-організаторка вечірок разом із Тео!", night: true }
+                ];
+            } else {
+                nextSeq = [
+                    { imgKey: "img_f3_3_scifi", speaker: "Фінал 2", text: "Фінал 2: 'Ніч у стилі соул'! Пристрасна ніч і обіцянка неодмінно повернутися наступного літа.", night: true }
+                ];
+            }
+        } else if (branchKey === 'teo_ending_neutral') {
+            nextSeq = [
+                { imgKey: "img_f3_3_scifi", speaker: "Фінал 3", text: "Фінал 3: 'Просто гостя'! Лея повертається до готелю раніше, зберігши внутрішній спокій.", night: false }
+            ];
+        } else if (branchKey === 'scifi_ending_good') {
+            if (lovePoints >= 2) {
+                nextSeq = [
+                    { imgKey: "img_f3_3_teo", speaker: "Фінал 1", text: "Фінал 1: 'Дзен для двох'! Лея залишається жити в кемпі біля джунглів, вивчаючи гармонію та бойові мистецтва.", night: true }
+                ];
+            } else {
+                nextSeq = [
+                    { imgKey: "img_f3_3_teo", speaker: "Фінал 2", text: "Фінал 2: 'Сильний захисник'! Романтичний тиждень під опікою Сайфая та зворушливе прощання на причалі.", night: true }
+                ];
+            }
+        } else if (branchKey === 'scifi_ending_neutral') {
+            nextSeq = [
+                { imgKey: "img_f3_3_teo", speaker: "Фінал 3", text: "Фінал 3: 'Урок засвоєно'! Лея повертається до свого звичного життя сильнішою та впевненішою.", night: false }
+            ];
+        }
+
+        activeStory = activeStory.concat(nextSeq);
+        document.getElementById('choiceOverlay').classList.remove('active');
+        currentStep++;
+        renderStep();
+    }
+</script>
+
+</body>
+</html>
